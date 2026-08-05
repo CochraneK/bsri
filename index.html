@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#3b82f6" />
+  <title>性别角色探索测验 · 贝母 BSRI 中文版</title>
+  <meta name="description" content="基于贝母性别角色量表（BSRI）的 60 题自我探索测验，了解你的男性化 / 女性化特质，看见自己在四象限中的位置。" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <!-- 截图依赖（公共 CDN，加载失败会自动降级提示） -->
+  <script defer src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+  <div class="app">
+
+    <!-- ============ 欢迎 / 开场（含性别询问） ============ -->
+    <section id="screen-welcome" class="screen active">
+      <div class="card">
+        <span class="tag">自我探索 · 非诊断</span>
+        <h1>你的性别角色，是怎样的？</h1>
+        <p>这是一份基于 <b>贝母性别角色量表（BSRI, Bem 1974）</b> 的中文自测。60 个描述，帮你看清自己身上“能动性”与“共情性”两种特质的交织方式。</p>
+        <p class="muted">性别角色是光谱，不是标签。无论结果如何，它都只是你此刻的一面镜子。</p>
+
+        <div class="note" style="margin-top:14px;">
+          ⚠️ 本测验仅供自我探索与科普参考，<b>不构成任何心理或医学诊断</b>。如你正被持续的情绪困扰，请寻求专业帮助。
+        </div>
+
+        <h2 style="margin-top:18px;">在开始之前，想先知道你的性别</h2>
+        <p class="muted">仅用于结果图中以“蓝（男）/ 粉（女）”区分你的落点，并与其他匿名被试对照。你也可选择不透露。</p>
+        <div class="gender-grid" id="genderGrid">
+          <div class="gender-opt" data-g="male"><div class="emoji">🟦</div><div class="label">男</div></div>
+          <div class="gender-opt" data-g="female"><div class="emoji">🩷</div><div class="label">女</div></div>
+          <div class="gender-opt" data-g="other"><div class="emoji">🟣</div><div class="label">不愿透露</div></div>
+        </div>
+
+        <button class="btn" id="startBtn" disabled>开始测验（约 5 分钟）</button>
+      </div>
+      <div class="foot">
+        数据仅保存在你自己的设备上，不会上传。<br/>完成后可下载报告与作答数据。
+      </div>
+    </section>
+
+    <!-- ============ 答题 ============ -->
+    <section id="screen-quiz" class="screen">
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-bar" id="progBar"></div></div>
+        <div class="progress-text" id="progText">0 / 60</div>
+      </div>
+      <div class="card" id="quizCard"><!-- 题目由 JS 注入 --></div>
+      <button class="btn" id="submitBtn" disabled>查看我的结果</button>
+      <div class="foot">题目顺序已随机打乱；中性题用于降低偏差，不计入结果。</div>
+    </section>
+
+    <!-- ============ 结果 ============ -->
+    <section id="screen-result" class="screen">
+      <div id="reportRoot"><!-- 报告由 JS 注入 --></div>
+
+      <div class="card chart-card">
+        <h2>🌐 四象限落点图</h2>
+        <p class="muted">横轴＝男性化得分，纵轴＝女性化得分；虚线为常模参考中位数。点越大越靠外，代表该特质越突出。</p>
+        <div class="chart-wrap"><canvas id="quad" width="680" height="680"></canvas></div>
+        <div class="legend" id="legend"></div>
+        <p class="muted" style="text-align:center;margin-top:8px;">图中灰/小点为匿名历史被试的聚合分布（展示形态），<b>大圆环是你的落点</b>。</p>
+      </div>
+
+      <div class="card">
+        <div class="ai-tip">
+          💡 <b>下一步的小建议：</b>你可以把下载好的<b>个人作答数据</b>，拿去和任意一款 AI（如聊天助手）继续深入交流——
+          比如问它：“结合我这些得分，我在亲密关系 / 职场里可能遇到什么课题？” 让数据成为你自我对话的起点。
+        </div>
+        <div class="btn-row" style="margin-bottom:10px;">
+          <button class="btn secondary" id="downImgBtn">📸 下载报告截图</button>
+          <button class="btn ghost" id="downDataBtn">📥 下载作答数据</button>
+        </div>
+        <button class="btn" id="restartBtn">重新测一次</button>
+      </div>
+
+      <div class="foot">
+        本工具基于公开量表 BSRI 编制，仅供自我探索。<br/>
+        历史落点为匿名聚合样本（静态展示），不代表实时全体用户。
+      </div>
+    </section>
+
+  </div>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
