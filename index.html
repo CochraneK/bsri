@@ -107,7 +107,10 @@
   .gp-title{font-size:14px;color:var(--ink);margin:0 0 13px;font-weight:600;}
   .gp-opts{display:flex;gap:12px;}
   .gp{flex:1;border:2px solid #ffe0ea;background:#fffdfe;border-radius:16px;padding:14px 0;font-size:16px;font-weight:700;color:var(--ink-soft);cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent;}
-  .gp.on{background:linear-gradient(135deg,#ff5e8a,#ff8fab);color:#fff;border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 16px rgba(255,94,138,.35);}
+  .gp[data-g="male"]{border-color:#cfe0ff;color:#3f7fe0;background:#f5f9ff;}      /* 男生=蓝 */
+  .gp[data-g="female"]{border-color:#ffd6e4;color:#ff5e8a;background:#fff5f9;}    /* 女生=粉 */
+  .gp.on.male{background:linear-gradient(135deg,#5b8def,#3f7fe0);color:#fff;border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 16px rgba(63,127,224,.35);}
+  .gp.on.female{background:linear-gradient(135deg,#ff8fab,#ff5e8a);color:#fff;border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 16px rgba(255,94,138,.35);}
   .scatter-wrap{margin-top:4px;background:#faf6fb;border-radius:16px;padding:10px;}
   .scatter-wrap canvas{width:100%;height:auto;display:block;border-radius:12px;}
   .scatter-cap{font-size:12px;color:var(--ink-soft);line-height:1.65;margin-top:9px;}
@@ -444,7 +447,12 @@ function startQuiz(){
 }
 function pickGender(g){
   currentGender = g;
-  document.querySelectorAll('.gp').forEach(b=>b.classList.toggle('on', b.dataset.g===g));
+  document.querySelectorAll('.gp').forEach(b=>{
+    const on = b.dataset.g===g;
+    b.classList.toggle('on', on);
+    b.classList.toggle('male', on && g==='male');
+    b.classList.toggle('female', on && g==='female');
+  });
 }
 function finishQuiz(){
   const done = answers.filter(a=>a>0).length;
