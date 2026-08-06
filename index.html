@@ -117,7 +117,7 @@
   .lead b{color:var(--ink);}
   .data-acts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .btn.small{font-size:14px;padding:12px 14px;border-radius:14px;flex:1;min-width:130px;background:#fff;color:var(--pink);box-shadow:var(--shadow);}
-  .prompt-box{background:#faf6fb;border:1px dashed #e7d8e0;border-radius:14px;padding:14px;font-size:12.5px;line-height:1.85;color:#5a4a54;white-space:pre-wrap;word-break:break-word;}
+  .prompt-box{display:none;background:#faf6fb;border:1px dashed #e7d8e0;border-radius:14px;padding:14px;font-size:12.5px;line-height:1.85;color:#5a4a54;white-space:pre-wrap;word-break:break-word;margin-bottom:12px;}
   .r-section{margin-top:22px;}
   .r-section h3{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:7px;}
   .r-section h3::before{content:"";width:5px;height:16px;border-radius:4px;background:linear-gradient(var(--pink),var(--purple));}
@@ -136,6 +136,18 @@
     opacity:0;transition:.3s;z-index:30;pointer-events:none;}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .hidden{display:none!important;}
+
+  /* ===== 鼓励弹层 + 撒花 ===== */
+  #cheer{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:rgba(20,14,22,.4);opacity:0;pointer-events:none;transition:opacity .25s;}
+  #cheer.show{opacity:1;pointer-events:auto;}
+  .cheer-card{background:#fff;border-radius:26px;padding:30px 32px;max-width:82%;text-align:center;
+    box-shadow:0 24px 70px rgba(0,0,0,.3);transform:scale(.82);transition:transform .32s cubic-bezier(.2,1.35,.4,1);}
+  #cheer.show .cheer-card{transform:scale(1);}
+  .cheer-emoji{font-size:52px;line-height:1;margin-bottom:12px;animation:cheerPop .55s ease;}
+  .cheer-msg{font-size:16px;font-weight:800;color:#3a2d34;line-height:1.75;white-space:pre-line;}
+  @keyframes cheerPop{0%{transform:scale(0) rotate(-15deg)}60%{transform:scale(1.25) rotate(6deg)}100%{transform:scale(1)}}
+  #confetti{position:fixed;inset:0;z-index:60;pointer-events:none;}
 </style>
 </head>
 <body>
@@ -268,6 +280,15 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 鼓励弹层（1/3、2/3 时动态居中 + 撒花） -->
+<div id="cheer">
+  <div class="cheer-card">
+    <div class="cheer-emoji">🎉</div>
+    <div class="cheer-msg" id="cheer-msg"></div>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+
 <script>
 /* ============ 题目数据（贝母 BSRI 中文版，按 每3题一组 M/F/中性 循环） ============ */
 const M = ["维护自己的信念","独立的","果断、有主见的","个性坚强的","有力量感的","有领导能力的","乐于冒险","做决定不拖泥带水","能照顾好自己","有掌控感的","有男子气概的","敢于坚持立场","有冲劲的","像个领头人","有自己主意的","爱竞争的","有雄心壮志的","善于分析问题的","爱运动的","凡事靠自己的"];
@@ -319,14 +340,14 @@ function updateProgress(){
   const done = answers.filter(a=>a>0).length;
   document.getElementById('prog-text').textContent = done + ' / 60';
   document.getElementById('prog-bar').style.width = (done/60*100)+'%';
-  // 完成 1/3、2/3 时给一句鼓励（只提示一次）
+  // 完成 1/3、2/3 时动态居中鼓励 + 撒花（只提示一次）
   if(done===20 && !_milestoneShown[20]){
     _milestoneShown[20]=true;
-    toast('已经走完 1/3 啦 🌟 慢慢来，你愿意花时间看看自己，就很了不起');
+    cheer('已完成 1/3 啦 🌟\n慢慢来，你愿意花时间看看自己，就很了不起');
   }
   if(done===40 && !_milestoneShown[40]){
     _milestoneShown[40]=true;
-    toast('完成 2/3 了 💪 再坚持一下，你离「看清自己」更近一步');
+    cheer('完成 2/3 了 💪\n再坚持一下，你离「看清自己」更近一步');
   }
 }
 
@@ -449,8 +470,50 @@ function toast(msg){
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200);
 }
 
+/* ============ 动态居中鼓励弹层 + 撒花 ============ */
+function launchConfetti(){
+  const c=document.getElementById('confetti'); if(!c) return;
+  const ctx=c.getContext('2d');
+  const W=c.width=window.innerWidth, H=c.height=window.innerHeight;
+  const colors=['#ff5e8a','#3f7fe0','#b388ff','#ffd166','#06d6a0','#ff8fab'];
+  const N=160, parts=[];
+  for(let i=0;i<N;i++){
+    parts.push({x:Math.random()*W, y:-20-Math.random()*H*0.4,
+      vx:(Math.random()-0.5)*5, vy:2+Math.random()*4.5,
+      s:6+Math.random()*9, rot:Math.random()*6.28, vr:(Math.random()-0.5)*0.35,
+      color:colors[i%colors.length], shape:Math.random()<0.5?0:1});
+  }
+  const t0=performance.now();
+  (function frame(t){
+    ctx.clearRect(0,0,W,H);
+    let alive=false;
+    for(const p of parts){
+      p.x+=p.vx; p.y+=p.vy; p.vy+=0.045; p.rot+=p.vr;
+      if(p.y < H+30){
+        alive=true;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+        ctx.fillStyle=p.color;
+        if(p.shape===0) ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6);
+        else { ctx.beginPath(); ctx.arc(0,0,p.s/2,0,6.28); ctx.fill(); }
+        ctx.restore();
+      }
+    }
+    if(alive && t-t0<2800) requestAnimationFrame(frame);
+    else ctx.clearRect(0,0,W,H);
+  })(t0);
+}
+function cheer(msg){
+  const el=document.getElementById('cheer');
+  document.getElementById('cheer-msg').textContent=msg;
+  el.classList.add('show');
+  launchConfetti();
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove('show'),2800);
+  el.onclick=()=>el.classList.remove('show');   // 点一下提前关闭
+}
+
 /* ============ 后端 API（共存模式：有后端用真实数据，无后端回退内置样本） ============ */
-const API_BASE = '';   // 同源部署；若后端独立部署，可改成 'https://你的域名'
+const API_BASE = '';   // 同源静态部署（用内置示例分布）。接入真实落点：把 server.py 或 worker.js 部署后，改成后端地址，如 'https://bsri.xxx.workers.dev'
 let currentResult = null;
 let currentGender = '';
 
@@ -489,7 +552,7 @@ async function loadSamplePoints(me){
       const pts = (j.points||[]).map(p=>({m:p.m, f:p.f, gender:(p.gender||p.g||'unknown')}));
       renderScatter(pts, me);
       document.getElementById('counter').textContent =
-        `已汇总 ${pts.length} 位匿名填答者的落点（示例分布），下面是你和大家的位置 ✨`;
+        `这是一份「示例分布」（演示用，非真实用户）。下面是你和示例群体的位置 ✨`;
       return;
     }
   }catch(e){/* 忽略 */}
@@ -594,6 +657,10 @@ function downloadData(){
 function copyPrompt(){
   const r = currentResult || compute();
   const text = buildPrompt(r);
+  // 把开场白展示在下方（此前是空的虚线框，现已默认隐藏，点击后再显示）
+  const pb = document.getElementById('prompt-box');
+  pb.textContent = text;
+  pb.style.display = 'block';
   const ok = ()=>toast('开场白已复制，去粘贴给别的 AI 吧 📋');
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(text).then(ok).catch(()=>fallbackCopy(text,ok));
