@@ -513,7 +513,7 @@ function cheer(msg){
 }
 
 /* ============ 后端 API（共存模式：有后端用真实数据，无后端回退内置样本） ============ */
-const API_BASE = '';   // 同源静态部署（用内置示例分布）。接入真实落点：把 server.py 或 worker.js 部署后，改成后端地址，如 'https://bsri.xxx.workers.dev'
+const API_BASE = 'https://polished-moon-b698.cunyikang.workers.dev';   // 真实落点后端（Cloudflare Worker + KV）。后端不可达时自动回退内置示例分布。
 let currentResult = null;
 let currentGender = '';
 
