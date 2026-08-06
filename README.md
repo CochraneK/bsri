@@ -73,9 +73,11 @@ PORT=9000 python server.py       # 自定义端口
 - **带真实后端（推荐，显示真实落点）**：二选一——
   - 简单托管：在本机 / 云服务器运行 `server.py`，把 `index.html` 顶部的
     `const API_BASE = ''` 改成后端地址，即可累积并显示真实全体用户的落点。
-  - **零成本无服务器（推荐）**：用 `worker.js` 部署到 Cloudflare Workers（免费、无需信用卡），
-    绑定一个 KV 命名空间后，把 `API_BASE` 改成 Worker 域名即可。详细步骤见文件顶部注释。
-    这样每位真实填写者的落点都会被累积，前端读取的是**真实全体分布**，而非示例。
+  - **零成本无服务器（推荐，本项目已部署）**：用 `worker.js` 部署到 Cloudflare Workers（免费、无需信用卡），
+    绑定一个 KV 命名空间后，把 `API_BASE` 改成 Worker 域名即可。本项目已部署后端：
+    `https://polished-moon-b698.cunyikang.workers.dev`（KV 命名空间 `bsri-points`）。
+    前端 `API_BASE` 已指向它，每位真实填写者的落点都会被累积，前端读取的是**真实全体分布**，而非示例。
+    需要重新部署后端时，运行 `bash cf_deploy.sh`（需先设置环境变量 `CLOUDFLARE_API_TOKEN`）。
 
 ---
 基于公开量表 BSRI 编制，仅供科普与自我探索。
