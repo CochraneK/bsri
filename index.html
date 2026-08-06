@@ -234,6 +234,7 @@
             <div class="scatter-legend">
               <span><i style="background:#3f7fe0"></i>男生落点</span>
               <span><i style="background:#ff5e8a"></i>女生落点</span>
+              <span><i style="background:#969096"></i>示例参考</span>
               <span><i style="background:#3f7fe0;border:3px solid #fff;box-shadow:0 0 0 2px #3f7fe0"></i>你（高亮）</span>
             </div>
             <div class="scatter-cap">横轴=男性化特质，纵轴=女性化特质，中间 5.0 为分界（四象限对应四种类型）。每个点都是一位填写者：🔵男生、🌸女生，亮色大点是你 🌟</div>
@@ -527,52 +528,46 @@ let currentGender = '';
 
 async function submitAndLoadPoints(r){
   currentResult = r;
+  const me = {mScore:r.mScore, fScore:r.fScore, gender:currentGender||'unknown'};
   const payload = {m:+r.mScore.toFixed(3), f:+r.fScore.toFixed(3), type:r.type, gender:currentGender||'unknown'};
+  // 1) 提交自己的点（失败不阻塞）
   try{
     const ctl = new AbortController();
     const timer = setTimeout(()=>ctl.abort(), 4000);
-    // 1) 提交自己的点（失败不阻塞）
     try{
       await fetch(API_BASE+'/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify(payload),signal:ctl.signal});
     }catch(e){/* 离线或后端不可用，忽略 */}
     clearTimeout(timer);
-    // 2) 拉取全部点（真实后端）
+  }catch(e){}
+  // 2) 拉取真实全体落点（后端可达时）
+  let realPoints = [];
+  try{
     const resp = await fetch(API_BASE+'/api/points',{cache:'no-store'});
     const data = await resp.json();
-    renderScatter(data.points || [], {mScore:r.mScore, fScore:r.fScore, gender:currentGender||'unknown'});
-    const n = (data.points||[]).length;
-    document.getElementById('counter').textContent =
-      n>0 ? `已经有 ${n} 位朋友填过啦，下面是你和大家的位置 ✨`
-          : `你是最早填写的人之一，下面是你的位置 🌟`;
-  }catch(e){
-    // 3) 无后端（如纯静态 GitHub Pages）：加载内置匿名样本，保证可见他人分布
-    await loadSamplePoints({mScore:r.mScore, fScore:r.fScore, gender:currentGender||'unknown'});
-  }
-}
-
-/* 内置匿名样本（assets/data/history.json）：展示分布形态，不代表实时全体用户 */
-async function loadSamplePoints(me){
+    realPoints = data.points || [];
+  }catch(e){ realPoints = []; }
+  // 3) 始终加载示例分布作为参考底图（演示用，非真实用户），保证结果图非空
+  let samplePoints = [];
   try{
     const resp = await fetch('assets/data/history.json',{cache:'no-store'});
     if(resp.ok){
       const j = await resp.json();
-      const pts = (j.points||[]).map(p=>({m:p.m, f:p.f, gender:(p.gender||p.g||'unknown')}));
-      renderScatter(pts, me);
-      document.getElementById('counter').textContent =
-        `这是一份「示例分布」（演示用，非真实用户）。下面是你和示例群体的位置 ✨`;
-      return;
+      samplePoints = (j.points||[]).map(p=>({m:p.m, f:p.f, gender:(p.gender||p.g||'unknown')}));
     }
-  }catch(e){/* 忽略 */}
-  renderScatter([], me);
-  document.getElementById('counter').textContent = '（本地模式）暂未连接云端，仅显示你的位置';
+  }catch(e){}
+  renderScatter(realPoints, samplePoints, me);
+  const n = realPoints.length;
+  document.getElementById('counter').textContent =
+    n>0 ? `已经有 ${n} 位真实朋友填过啦，灰色小点是示例参考分布 ✨`
+        : `真实数据积累中～下面是示例参考分布（演示用），亮色大点是你 🌟`;
 }
 
 /* ============ 四象限散点图 ============ */
 function genderColor(g){
   return {male:'#3f7fe0', female:'#ff5e8a'}[g] || '#b9aeb6';   // 男=蓝 女=粉
 }
-function renderScatter(points, me){
+function renderScatter(realPoints, samplePoints, me){
   const cv = document.getElementById('scatter');
   const ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height, pad = 56;
@@ -611,8 +606,14 @@ function renderScatter(points, me){
   ctx.fillText('双性化', (x0+x1)*3/4, y0+22);
   ctx.fillText('未分化', (x0+x1)/4, y1-22);
   ctx.fillText('男性化', (x0+x1)*3/4, y1-22);
-  // 历史点（按性别上色：男蓝 女粉）
-  (points||[]).forEach(p=>{
+  // 示例参考分布（灰色淡点，演示用，非真实用户）
+  (samplePoints||[]).forEach(p=>{
+    ctx.beginPath();
+    ctx.fillStyle = 'rgba(150,140,150,0.30)';
+    ctx.arc(toX(p.m), toY(p.f), 6, 0, Math.PI*2); ctx.fill();
+  });
+  // 真实全体落点（按性别上色：男蓝 女粉）
+  (realPoints||[]).forEach(p=>{
     const c = genderColor(p.gender || 'unknown');
     ctx.beginPath();
     ctx.fillStyle = c + 'b0';   // 约 69% 透明
