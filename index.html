@@ -234,7 +234,6 @@
             <div class="scatter-legend">
               <span><i style="background:#3f7fe0"></i>男生落点</span>
               <span><i style="background:#ff5e8a"></i>女生落点</span>
-              <span><i style="background:#969096"></i>示例参考</span>
               <span><i style="background:#3f7fe0;border:3px solid #fff;box-shadow:0 0 0 2px #3f7fe0"></i>你（高亮）</span>
             </div>
             <div class="scatter-cap">横轴=男性化特质，纵轴=女性化特质，中间 5.0 为分界（四象限对应四种类型）。每个点都是一位填写者：🔵男生、🌸女生，亮色大点是你 🌟</div>
@@ -522,7 +521,7 @@ function cheer(msg){
 }
 
 /* ============ 后端 API（共存模式：有后端用真实数据，无后端回退内置样本） ============ */
-const API_BASE = 'https://polished-moon-b698.cunyikang.workers.dev';   // 真实落点后端（Cloudflare Worker + KV）。后端不可达时自动回退内置示例分布。
+const API_BASE = 'https://polished-moon-b698.cunyikang.workers.dev';   // 真实落点后端（Cloudflare Worker + KV）。后端不可达时仅显示你自己的点。
 let currentResult = null;
 let currentGender = '';
 
@@ -547,34 +546,25 @@ async function submitAndLoadPoints(r){
     const data = await resp.json();
     realPoints = data.points || [];
   }catch(e){ realPoints = []; }
-  // 3) 始终加载示例分布作为参考底图（演示用，非真实用户），保证结果图非空
-  let samplePoints = [];
-  try{
-    const resp = await fetch('assets/data/history.json',{cache:'no-store'});
-    if(resp.ok){
-      const j = await resp.json();
-      samplePoints = (j.points||[]).map(p=>({m:p.m, f:p.f, gender:(p.gender||p.g||'unknown')}));
-    }
-  }catch(e){}
-  renderScatter(realPoints, samplePoints, me);
+  renderScatter(realPoints, me);
   const n = realPoints.length;
   document.getElementById('counter').textContent =
-    n>0 ? `已经有 ${n} 位真实朋友填过啦，灰色小点是示例参考分布 ✨`
-        : `真实数据积累中～下面是示例参考分布（演示用），亮色大点是你 🌟`;
+    n>0 ? `已经有 ${n} 位真实朋友填过啦，下面是你和大家的位置 ✨`
+        : `你是较早填写的人之一～真实数据积累中，亮色大点是你 🌟`;
 }
 
 /* ============ 四象限散点图 ============ */
 function genderColor(g){
   return {male:'#3f7fe0', female:'#ff5e8a'}[g] || '#b9aeb6';   // 男=蓝 女=粉
 }
-function renderScatter(realPoints, samplePoints, me){
+function renderScatter(realPoints, me){
   const cv = document.getElementById('scatter');
   const ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height, pad = 56;
   const x0 = pad, x1 = W - pad, y0 = pad, y1 = H - pad;   // 画布内边距
   const MIN=1, MAX=7;
   const toX = v => x0 + (v-MIN)/(MAX-MIN)*(x1-x0);
-  const toY = v => y1 - (v-MIN)/(MAX-MIN)*(y0-y1);  // 女性化在上
+  const toY = v => y1 - (v-MIN)/(MAX-MIN)*(y1-y0);  // 女性化在上
   ctx.clearRect(0,0,W,H);
   // 背景四区淡色
   ctx.fillStyle = '#eef4ff'; ctx.fillRect(x0,y0,(x1-x0)/2,(y1-y0)/2);                 // 左上 女性化
@@ -589,8 +579,8 @@ function renderScatter(realPoints, samplePoints, me){
     ctx.beginPath();ctx.moveTo(gx,y0);ctx.lineTo(gx,y1);ctx.stroke();
     ctx.beginPath();ctx.moveTo(x0,gy);ctx.lineTo(x1,gy);ctx.stroke();
   }
-  // 中轴线（5.0 分界）
-  ctx.strokeStyle='#ff5e8a'; ctx.lineWidth=2.5; ctx.setLineDash([10,8]);
+  // 5.0 判定临界线（男性化/女性化特质分界，把图分成四象限）
+  ctx.strokeStyle='#c4b3cf'; ctx.lineWidth=2; ctx.setLineDash([9,7]);
   const mx=toX(5), my=toY(5);
   ctx.beginPath();ctx.moveTo(mx,y0);ctx.lineTo(mx,y1);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x0,my);ctx.lineTo(x1,my);ctx.stroke();
@@ -606,12 +596,6 @@ function renderScatter(realPoints, samplePoints, me){
   ctx.fillText('双性化', (x0+x1)*3/4, y0+22);
   ctx.fillText('未分化', (x0+x1)/4, y1-22);
   ctx.fillText('男性化', (x0+x1)*3/4, y1-22);
-  // 示例参考分布（灰色淡点，演示用，非真实用户）
-  (samplePoints||[]).forEach(p=>{
-    ctx.beginPath();
-    ctx.fillStyle = 'rgba(150,140,150,0.30)';
-    ctx.arc(toX(p.m), toY(p.f), 6, 0, Math.PI*2); ctx.fill();
-  });
   // 真实全体落点（按性别上色：男蓝 女粉）
   (realPoints||[]).forEach(p=>{
     const c = genderColor(p.gender || 'unknown');
