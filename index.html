@@ -121,6 +121,9 @@
   .data-acts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .btn.small{font-size:14px;padding:12px 14px;border-radius:14px;flex:1;min-width:130px;background:#fff;color:var(--pink);box-shadow:var(--shadow);}
   .prompt-box{display:none;background:#faf6fb;border:1px dashed #e7d8e0;border-radius:14px;padding:14px;font-size:12.5px;line-height:1.85;color:#5a4a54;white-space:pre-wrap;word-break:break-word;margin-bottom:12px;}
+  .uid-line{font-size:12.5px;color:var(--ink-soft);background:#f1f6ff;border:1px dashed #cfe0ff;border-radius:12px;padding:11px 13px;margin-top:14px;line-height:1.7;}
+  .uid-line code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;color:#3f7fe0;padding:2px 8px;border-radius:7px;font-size:12px;word-break:break-all;}
+  .uid-line a{color:var(--pink);font-weight:700;cursor:pointer;margin-left:6px;}
   .r-section{margin-top:22px;}
   .r-section h3{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:7px;}
   .r-section h3::before{content:"";width:5px;height:16px;border-radius:4px;background:linear-gradient(var(--pink),var(--purple));}
@@ -264,6 +267,7 @@
             <button class="btn small" onclick="downloadData()">📥 下载我的数据</button>
             <button class="btn small" onclick="copyPrompt()">📋 复制 AI 开场白</button>
           </div>
+          <div class="uid-line">你的「数据提取码」：<code id="uid-code">…</code><a onclick="copyUid()">复制</a><br>换手机或清缓存后，凭此码仍可在后台取回你的数据 💗</div>
           <div class="prompt-box" id="prompt-box"></div>
         </div>
 
@@ -464,8 +468,11 @@ function finishQuiz(){
     return;
   }
   const r = compute();
+  ensureUid();              // 生成/取回本机提取码
   renderReport(r);
   show('result');
+  const codeEl = document.getElementById('uid-code');
+  if(codeEl) codeEl.textContent = myUid;   // 展示「数据提取码」
   submitAndLoadPoints(r);
 }
 function restart(){
@@ -524,18 +531,27 @@ function cheer(msg){
 const API_BASE = 'https://polished-moon-b698.cunyikang.workers.dev';   // 真实落点后端（Cloudflare Worker + KV）。后端不可达时仅显示你自己的点。
 let currentResult = null;
 let currentGender = '';
+let myUid = '';   // 匿名提取码：本人凭它从后台取回自己的明细，随机不可猜
 
 async function submitAndLoadPoints(r){
   currentResult = r;
+  ensureUid();   // 确保本机有匿名提取码
   const me = {mScore:r.mScore, fScore:r.fScore, gender:currentGender||'unknown'};
-  const payload = {m:+r.mScore.toFixed(3), f:+r.fScore.toFixed(3), type:r.type, gender:currentGender||'unknown'};
+  const payload = {
+    m:+r.mScore.toFixed(3), f:+r.fScore.toFixed(3), type:r.type,
+    gender:currentGender||'unknown',
+    uid: myUid,                 // 匿名提取码：后台据此存/取本人明细
+    answers: answers.map(Number) // 60 题完整作答（-1 等缺失记为 0）
+  };
   // 1) 提交自己的点（失败不阻塞）
   try{
     const ctl = new AbortController();
     const timer = setTimeout(()=>ctl.abort(), 4000);
     try{
-      await fetch(API_BASE+'/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
+      const resp = await fetch(API_BASE+'/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify(payload),signal:ctl.signal});
+      const j = await resp.json().catch(()=>null);
+      if(j && j.uid){ myUid = j.uid; try{localStorage.setItem('bsri_uid', j.uid);}catch(e){} } // 回存，保持前后端一致
     }catch(e){/* 离线或后端不可用，忽略 */}
     clearTimeout(timer);
   }catch(e){}
@@ -614,6 +630,50 @@ function renderScatter(realPoints, me){
 }
 
 /* ============ 导出数据 & 复用引导 ============ */
+// 确保本机有匿名提取码（存入 localStorage，同一浏览器再次访问可用；不依赖账号）
+function ensureUid(){
+  let u = '';
+  try { u = localStorage.getItem('bsri_uid') || ''; } catch(e){}
+  if(!/^[A-Za-z0-9_-]{8,64}$/.test(u)){
+    u = (crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : 'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,10);
+    try { localStorage.setItem('bsri_uid', u); } catch(e){}
+  }
+  myUid = u;
+  return u;
+}
+// 把结构化对象触发为文件下载
+function triggerDownload(obj, filename){
+  const blob = new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+// 由后台明细记录还原成与 buildPayload 同构的导出对象
+function buildPayloadFromRecord(rec){
+  const ans = questions.map((q,i)=>({
+    no:i+1, word:q.word, category:q.cat,
+    score:(rec.answers && rec.answers[i]!=null) ? Number(rec.answers[i]) : 0
+  }));
+  return {
+    meta:{test:'贝姆性别角色量表(BSRI)', generatedAt:new Date(rec.ts||Date.now()).toISOString(),
+          gender:rec.gender||'unknown', uid:rec.uid},
+    scores:{masculinity:+Number(rec.m).toFixed(2), femininity:+Number(rec.f).toFixed(2), threshold:5.0},
+    type:rec.type, typeLabel:REPORT[rec.type]?REPORT[rec.type].title:rec.type,
+    answers:ans
+  };
+}
+// 复制「数据提取码」（换设备时手动粘贴用）
+function copyUid(){
+  const code = document.getElementById('uid-code').textContent;
+  if(!code || code==='…'){ toast('提取码还没生成'); return; }
+  const ok=()=>toast('提取码已复制 💗');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(code).then(ok).catch(()=>fallbackCopy(code,ok));
+  }else fallbackCopy(code,ok);
+}
 function buildPayload(r){
   const ans = questions.map((q,i)=>({no:i+1, word:q.word, category:q.cat, score:answers[i]}));
   return {
@@ -635,16 +695,25 @@ function buildPrompt(r){
 3）有哪些被我忽略、但其实很珍贵的特质。
 谢谢，请多结合我的具体作答来谈。`;
 }
-function downloadData(){
+async function downloadData(){
+  // 优先从后台取回「本人」数据（凭匿名提取码，只取回自己的）
+  const uid = myUid || (function(){ try{return localStorage.getItem('bsri_uid')||'';}catch(e){return '';} })();
+  if(uid){
+    try{
+      const resp = await fetch(API_BASE+'/api/mine',{headers:{'x-bsri-uid':uid},cache:'no-store'});
+      if(resp.ok){
+        const rec = await resp.json();
+        triggerDownload(buildPayloadFromRecord(rec), '我的性别角色数据.json');
+        toast('已从后台取回你的数据 💗');
+        return;
+      }
+    }catch(e){ /* 落到本地兜底 */ }
+  }
+  // 兜底：本地依据当前作答生成（断网时也能用）
   try{
     const r = currentResult || compute();
-    const blob = new Blob([JSON.stringify(buildPayload(r),null,2)],{type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = '我的性别角色数据.json';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast('已下载，去和别的 AI 聊聊吧 💗');
+    triggerDownload(buildPayload(r), '我的性别角色数据.json');
+    toast('已下载（本地生成，未连后台）💗');
   }catch(e){ toast('下载失败，请重试'); }
 }
 function copyPrompt(){
