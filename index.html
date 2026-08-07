@@ -69,7 +69,6 @@
     color:#fff;padding:14px 18px 12px;box-shadow:0 4px 14px rgba(179,136,255,.3);}
   .quiz-head .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px;}
   .head-right{display:flex;gap:12px;align-items:center;}
-  .head-right #quiz-timer{opacity:.95;}
   .progress{height:7px;background:rgba(255,255,255,.35);border-radius:10px;overflow:hidden;}
   .q-hint{font-size:12px;line-height:1.5;color:rgba(255,255,255,.92);margin:9px 2px 0;}
   .progress > i{display:block;height:100%;width:0;background:#fff;border-radius:10px;transition:width .3s;}
@@ -145,11 +144,11 @@
   .tips .t::before{content:"💡";position:absolute;left:0;top:1px;font-size:13px;}
   .r-foot{padding:6px 22px 26px;font-size:11.5px;color:#b0a3ab;line-height:1.7;}
   .result .acts{padding:18px 16px 0;display:flex;flex-direction:column;gap:12px;}
-  .result .acts .btn.share{background:linear-gradient(135deg,#ff5e8a,#ff8fab);}
+  .result .acts .btn.share{background:linear-gradient(135deg,#5b8def,#3f7fe0);box-shadow:0 12px 26px rgba(63,127,224,.4);}
   .result .acts .btn.again{background:#fff;color:var(--pink);box-shadow:var(--shadow);}
   .acts-row{display:flex;gap:12px;}
   .acts-row .btn{flex:1;}
-  .btn.outline{background:#fff;color:var(--pink);box-shadow:var(--shadow);}
+  .btn.outline{background:linear-gradient(135deg,#ff8fab,#ff5e8a);color:#fff;box-shadow:0 12px 26px rgba(255,94,138,.4);}
   .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);
     background:rgba(58,42,51,.92);color:#fff;font-size:13px;padding:11px 18px;border-radius:14px;
     opacity:0;transition:.3s;z-index:30;pointer-events:none;}
@@ -212,7 +211,7 @@
   <!-- 答题 -->
   <section id="quiz" class="screen">
     <div class="quiz-head">
-      <div class="row"><span>🌸 一点点看清自己</span><span class="head-right"><span id="prog-text">0 / 60</span><span id="quiz-timer">⏱ 00:00</span></span></div>
+      <div class="row"><span>🌸 一点点看清自己</span><span class="head-right"><span id="prog-text">0 / 60</span></span></div>
       <div class="progress"><i id="prog-bar"></i></div>
       <p class="q-hint">请为下面每句话与自己的符合程度打分（1 = 很不符合，7 = 很符合）。</p>
     </div>
@@ -254,7 +253,7 @@
             <div class="scatter-legend">
               <span><i style="background:#3f7fe0"></i>男生落点</span>
               <span><i style="background:#ff5e8a"></i>女生落点</span>
-              <span><i style="background:#3f7fe0;border:3px solid #fff;box-shadow:0 0 0 2px #3f7fe0"></i>你（高亮）</span>
+              <span><i id="legend-me" style="background:#3f7fe0;border:3px solid #fff;box-shadow:0 0 0 2px #3f7fe0"></i>你（高亮）</span>
             </div>
             <div class="scatter-cap">横轴=男性化特质，纵轴=女性化特质，中间 5.0 为分界（四象限对应四种类型）。每个点都是一位填写者：🔵男生、🌸女生，亮色大点是你 🌟</div>
           </div>
@@ -294,7 +293,7 @@
 
       <div class="acts">
         <div class="acts-row">
-          <button class="btn share" onclick="saveImage()">📷 保存报告图片</button>
+          <button class="btn share" onclick="saveImage()">📷 保存报告</button>
           <button class="btn outline" onclick="downloadData()">📥 下载数据</button>
         </div>
         <button class="btn again" onclick="restart()">↺ 再测一次</button>
@@ -467,18 +466,6 @@ function startQuiz(){
   }
   renderQuiz(); updateProgress();
   show('quiz');
-  // 启动答题计时
-  quizStart = Date.now();
-  if(quizTimerId) clearInterval(quizTimerId);
-  const tick = ()=>{
-    const s = Math.floor((Date.now()-quizStart)/1000);
-    const mm = String(Math.floor(s/60)).padStart(2,'0');
-    const ss = String(s%60).padStart(2,'0');
-    const el = document.getElementById('quiz-timer');
-    if(el) el.textContent = `⏱ ${mm}:${ss}`;
-  };
-  tick();
-  quizTimerId = setInterval(tick, 1000);
 }
 function pickGender(g){
   currentGender = g;
@@ -499,7 +486,6 @@ function finishQuiz(){
     return;
   }
   const r = compute();
-  if(quizTimerId){ clearInterval(quizTimerId); quizTimerId=null; }  // 停止答题计时
   ensureUid();              // 生成/取回本机提取码
   renderReport(r);
   show('result');
@@ -508,7 +494,6 @@ function finishQuiz(){
   submitAndLoadPoints(r);
 }
 function restart(){
-  if(quizTimerId){ clearInterval(quizTimerId); quizTimerId=null; }
   answers.fill(0);
   show('cover');
 }
@@ -565,8 +550,6 @@ const API_BASE = 'https://polished-moon-b698.cunyikang.workers.dev';   // 真实
 let currentResult = null;
 let currentGender = '';
 let myUid = '';   // 匿名提取码：本人凭它从后台取回自己的明细，随机不可猜
-let quizStart = 0;     // 答题计时起点
-let quizTimerId = null;
 
 async function submitAndLoadPoints(r){
   currentResult = r;
@@ -664,6 +647,9 @@ function renderScatter(realPoints, me){
     ctx.beginPath(); ctx.fillStyle = mc + '33'; ctx.arc(cx,cy,22,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.fillStyle = mc; ctx.arc(cx,cy,10,0,Math.PI*2); ctx.fill();
     ctx.lineWidth=3.5; ctx.strokeStyle='#fff'; ctx.stroke();
+    // 图例「你（高亮）」跟随性别变色：男蓝 女粉
+    const lm = document.getElementById('legend-me');
+    if(lm){ lm.style.background = mc; lm.style.boxShadow = '0 0 0 2px ' + mc; }
   }
 }
 
