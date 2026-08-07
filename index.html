@@ -59,6 +59,8 @@
   .btn:active{transform:scale(.97);}
   .btn.ghost{background:#fff;color:var(--pink);box-shadow:var(--shadow);margin-top:12px;}
   .disclaimer{font-size:11px;color:#b0a3ab;margin-top:18px;line-height:1.6;}
+  .privacy-note{font-size:12.5px;color:#6a5a64;line-height:1.85;background:#f3f8ff;border:1px solid #dce9ff;border-radius:14px;padding:12px 14px;margin:0 0 18px;}
+  .privacy-note b{color:#3a2d34;}
 
   /* ===== 答题 ===== */
   .quiz-head{position:sticky;top:0;z-index:5;background:linear-gradient(135deg,#ff5e8a,#b388ff);
@@ -179,6 +181,11 @@
         然后告诉你——<b>你，是哪一种独特的存在</b>。
       </div>
 
+      <div class="privacy-note">
+        🔒 <b>你的作答会被匿名保存</b>：我们只在后台记录你的 60 题作答、得分与类型，<b>不含姓名、微信、手机号、IP</b>。
+        它用来让你看到「自己和大家的位置」，也方便你随时把数据下载带走——<b>数据归你，我们不会拿去干别的</b>。
+      </div>
+
       <div class="gender-pick">
         <p class="gp-title">先悄悄告诉我，你是 👦 还是 👧？</p>
         <div class="gp-opts">
@@ -268,6 +275,11 @@
             <button class="btn small" onclick="copyPrompt()">📋 复制 AI 开场白</button>
           </div>
           <div class="uid-line">你的「数据提取码」：<code id="uid-code">…</code><a onclick="copyUid()">复制</a><br>换手机或清缓存后，凭此码仍可在后台取回你的数据 💗</div>
+          <p class="lead" style="margin-top:14px;background:#f3f8ff;border:1px solid #dce9ff;border-radius:14px;padding:13px 15px;color:#6a5a64;">
+            <b>📋 关于你的数据：</b>我们匿名保存了你的 60 题作答、得分、类型与提交时间——<b>不含任何能识别你的信息</b>。
+            它是<b>你的</b>数据：凭上面的「提取码」，你可以随时重新下载，换手机或清缓存也不怕丢。
+            如果你希望删除自己的数据，凭提取码联系我们即可移除 💗
+          </p>
           <div class="prompt-box" id="prompt-box"></div>
         </div>
 
