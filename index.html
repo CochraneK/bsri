@@ -255,7 +255,7 @@
               <span><i style="background:#ff5e8a"></i>女生落点</span>
               <span><i id="legend-me" style="background:#3f7fe0;border:3px solid #fff;box-shadow:0 0 0 2px #3f7fe0"></i>你（高亮）</span>
             </div>
-            <div class="scatter-cap">横轴=男性化特质，纵轴=女性化特质，中间 5.0 为分界（四象限对应四种类型）。每个点都是一位填写者：🔵男生、🌸女生，亮色大点是你 🌟</div>
+            <div class="scatter-cap">横轴=男性化特质，纵轴=女性化特质。两条浅紫虚线是 BSRI 的 <b>5.0 临界线</b>（把图分成四象限）；它在「5 分」处，<b>不是正中</b>——因为量表是 1–7 分，正中是 4 分。每个点都是一位填写者：🔵男生、🌸女生，亮色大点+「你·类型」标注是你 🌟</div>
           </div>
 
           <div class="r-section">
@@ -573,7 +573,7 @@ let myUid = '';   // 匿名提取码：本人凭它从后台取回自己的明�
 async function submitAndLoadPoints(r){
   currentResult = r;
   ensureUid();   // 确保本机有匿名提取码
-  const me = {mScore:r.mScore, fScore:r.fScore, gender:currentGender||'unknown'};
+  const me = {mScore:r.mScore, fScore:r.fScore, type:r.type, gender:currentGender||'unknown'};
   const payload = {
     m:+r.mScore.toFixed(3), f:+r.fScore.toFixed(3), type:r.type,
     gender:currentGender||'unknown',
@@ -641,6 +641,12 @@ function renderScatter(realPoints, me){
   ctx.beginPath();ctx.moveTo(mx,y0);ctx.lineTo(mx,y1);ctx.stroke();
   ctx.beginPath();ctx.moveTo(x0,my);ctx.lineTo(x1,my);ctx.stroke();
   ctx.setLineDash([]);
+  // 明确标注这是 5.0 临界线，消除"莫名黑虚线"困惑
+  ctx.fillStyle='#9a86b8'; ctx.font='bold 15px -apple-system,"PingFang SC",sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='middle';
+  ctx.fillText('5.0', mx+6, y0+14);
+  ctx.textAlign='right'; ctx.textBaseline='bottom';
+  ctx.fillText('5.0', x1-6, my-6);
   // 轴标题
   ctx.fillStyle='#7a6a73'; ctx.font='bold 22px -apple-system,"PingFang SC",sans-serif';
   ctx.fillText('男性化 →', (x0+x1)/2, y1+34);
@@ -666,6 +672,17 @@ function renderScatter(realPoints, me){
     ctx.beginPath(); ctx.fillStyle = mc + '33'; ctx.arc(cx,cy,22,0,Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.fillStyle = mc; ctx.arc(cx,cy,10,0,Math.PI*2); ctx.fill();
     ctx.lineWidth=3.5; ctx.strokeStyle='#fff'; ctx.stroke();
+    // 在「你」的点旁直接标注类型名，消除象限误读
+    if(me.type){
+      const label = (REPORT[me.type] && REPORT[me.type].title) ? REPORT[me.type].title : me.type;
+      ctx.font='bold 17px -apple-system,"PingFang SC",sans-serif';
+      let lx = cx + 16, ly = cy - 16; ctx.textAlign='left'; ctx.textBaseline='bottom';
+      if(lx + 96 > x1){ lx = cx - 16; ctx.textAlign='right'; }   // 靠右则翻到左边
+      if(ly - 22 < y0){ ly = cy + 22; ctx.textBaseline='top'; }  // 靠上则翻到下方
+      ctx.lineWidth=4; ctx.strokeStyle='rgba(255,255,255,.92)'; ctx.strokeText('你·'+label, lx, ly);
+      ctx.fillStyle='#3a2a33'; ctx.fillText('你·'+label, lx, ly);
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+    }
     // 图例「你（高亮）」跟随性别变色：男蓝 女粉
     const lm = document.getElementById('legend-me');
     if(lm){ lm.style.background = mc; lm.style.boxShadow = '0 0 0 2px ' + mc; }
