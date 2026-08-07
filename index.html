@@ -68,6 +68,8 @@
   .quiz-head{position:sticky;top:0;z-index:5;background:linear-gradient(135deg,#ff5e8a,#b388ff);
     color:#fff;padding:14px 18px 12px;box-shadow:0 4px 14px rgba(179,136,255,.3);}
   .quiz-head .row{display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:8px;}
+  .head-right{display:flex;gap:12px;align-items:center;}
+  .head-right #quiz-timer{opacity:.95;}
   .progress{height:7px;background:rgba(255,255,255,.35);border-radius:10px;overflow:hidden;}
   .q-hint{font-size:12px;line-height:1.5;color:rgba(255,255,255,.92);margin:9px 2px 0;}
   .progress > i{display:block;height:100%;width:0;background:#fff;border-radius:10px;transition:width .3s;}
@@ -129,7 +131,6 @@
   .data-note{font-size:12.5px;color:#6a5a64;line-height:1.85;background:#f3f8ff;border:1px solid #dce9ff;border-radius:14px;padding:12px 14px;margin:0 0 14px;}
   .data-note b{color:var(--ink);}
   .take-away{padding:0 22px;}
-  .bottom-acts{padding:0 22px 12px;}
   .uid-line{font-size:12.5px;color:var(--ink-soft);background:#f1f6ff;border:1px dashed #cfe0ff;border-radius:12px;padding:11px 13px;margin-top:14px;line-height:1.7;}
   .uid-line code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;color:#3f7fe0;padding:2px 8px;border-radius:7px;font-size:12px;word-break:break-all;}
   .uid-line a{color:var(--pink);font-weight:700;cursor:pointer;margin-left:6px;}
@@ -146,6 +147,9 @@
   .result .acts{padding:18px 16px 0;display:flex;flex-direction:column;gap:12px;}
   .result .acts .btn.share{background:linear-gradient(135deg,#ff5e8a,#ff8fab);}
   .result .acts .btn.again{background:#fff;color:var(--pink);box-shadow:var(--shadow);}
+  .acts-row{display:flex;gap:12px;}
+  .acts-row .btn{flex:1;}
+  .btn.outline{background:#fff;color:var(--pink);box-shadow:var(--shadow);}
   .toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);
     background:rgba(58,42,51,.92);color:#fff;font-size:13px;padding:11px 18px;border-radius:14px;
     opacity:0;transition:.3s;z-index:30;pointer-events:none;}
@@ -208,7 +212,7 @@
   <!-- 答题 -->
   <section id="quiz" class="screen">
     <div class="quiz-head">
-      <div class="row"><span>🌸 一点点看清自己</span><span id="prog-text">0 / 60</span></div>
+      <div class="row"><span>🌸 一点点看清自己</span><span class="head-right"><span id="prog-text">0 / 60</span><span id="quiz-timer">⏱ 00:00</span></span></div>
       <div class="progress"><i id="prog-bar"></i></div>
       <p class="q-hint">请为下面每句话与自己的符合程度打分（1 = 很不符合，7 = 很符合）。</p>
     </div>
@@ -243,7 +247,7 @@
 
           <div class="r-section">
             <h3>你和大家站在哪</h3>
-            <p class="counter" id="counter">正在读取已有数据…</p>
+            <p class="counter" id="counter">正在绘制落点图…</p>
             <div class="scatter-wrap">
               <canvas id="scatter" width="640" height="640"></canvas>
             </div>
@@ -286,15 +290,13 @@
         <div class="r-foot">
           测验依据贝姆性别角色量表（BSRI）编制 · 结果由你的自我描述生成，仅供参考与自我探索，不作临床诊断 💗
         </div>
-
-        <div class="data-acts bottom-acts">
-          <button class="btn small" onclick="downloadData()">📥 下载数据</button>
-          <button class="btn small" onclick="copyPrompt()">📋 复制 AI 开场白</button>
-        </div>
       </div>
 
       <div class="acts">
-        <button class="btn share" onclick="saveImage()">📷 保存报告图片</button>
+        <div class="acts-row">
+          <button class="btn share" onclick="saveImage()">📷 保存报告图片</button>
+          <button class="btn outline" onclick="downloadData()">📥 下载数据</button>
+        </div>
         <button class="btn again" onclick="restart()">↺ 再测一次</button>
       </div>
     </div>
@@ -465,6 +467,18 @@ function startQuiz(){
   }
   renderQuiz(); updateProgress();
   show('quiz');
+  // 启动答题计时
+  quizStart = Date.now();
+  if(quizTimerId) clearInterval(quizTimerId);
+  const tick = ()=>{
+    const s = Math.floor((Date.now()-quizStart)/1000);
+    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    const el = document.getElementById('quiz-timer');
+    if(el) el.textContent = `⏱ ${mm}:${ss}`;
+  };
+  tick();
+  quizTimerId = setInterval(tick, 1000);
 }
 function pickGender(g){
   currentGender = g;
@@ -485,6 +499,7 @@ function finishQuiz(){
     return;
   }
   const r = compute();
+  if(quizTimerId){ clearInterval(quizTimerId); quizTimerId=null; }  // 停止答题计时
   ensureUid();              // 生成/取回本机提取码
   renderReport(r);
   show('result');
@@ -493,6 +508,7 @@ function finishQuiz(){
   submitAndLoadPoints(r);
 }
 function restart(){
+  if(quizTimerId){ clearInterval(quizTimerId); quizTimerId=null; }
   answers.fill(0);
   show('cover');
 }
@@ -549,6 +565,8 @@ const API_BASE = 'https://polished-moon-b698.cunyikang.workers.dev';   // 真实
 let currentResult = null;
 let currentGender = '';
 let myUid = '';   // 匿名提取码：本人凭它从后台取回自己的明细，随机不可猜
+let quizStart = 0;     // 答题计时起点
+let quizTimerId = null;
 
 async function submitAndLoadPoints(r){
   currentResult = r;
@@ -560,30 +578,33 @@ async function submitAndLoadPoints(r){
     uid: myUid,                 // 匿名提取码：后台据此存/取本人明细
     answers: answers.map(Number) // 60 题完整作答（-1 等缺失记为 0）
   };
-  // 1) 提交自己的点（失败不阻塞）
-  try{
-    const ctl = new AbortController();
-    const timer = setTimeout(()=>ctl.abort(), 4000);
+  // 先立即画出你自己的点（不等后端，秒出图）
+  renderScatter([], me);
+  document.getElementById('counter').textContent = '正在绘制落点图…';
+  // 后台异步：提交 + 拉取真实全体落点（不阻塞渲染）
+  (async()=>{
     try{
-      const resp = await fetch(API_BASE+'/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify(payload),signal:ctl.signal});
-      const j = await resp.json().catch(()=>null);
-      if(j && j.uid){ myUid = j.uid; try{localStorage.setItem('bsri_uid', j.uid);}catch(e){} } // 回存，保持前后端一致
-    }catch(e){/* 离线或后端不可用，忽略 */}
-    clearTimeout(timer);
-  }catch(e){}
-  // 2) 拉取真实全体落点（后端可达时）
-  let realPoints = [];
-  try{
-    const resp = await fetch(API_BASE+'/api/points',{cache:'no-store'});
-    const data = await resp.json();
-    realPoints = data.points || [];
-  }catch(e){ realPoints = []; }
-  renderScatter(realPoints, me);
-  const n = realPoints.length;
-  document.getElementById('counter').textContent =
-    n>0 ? `已经有 ${n} 位真实朋友填过啦，下面是你和大家的位置 ✨`
-        : `你是较早填写的人之一～真实数据积累中，亮色大点是你 🌟`;
+      const ctl = new AbortController();
+      const timer = setTimeout(()=>ctl.abort(), 3000);
+      try{
+        const resp = await fetch(API_BASE+'/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload),signal:ctl.signal});
+        const j = await resp.json().catch(()=>null);
+        if(j && j.uid){ myUid = j.uid; try{localStorage.setItem('bsri_uid', j.uid);}catch(e){} } // 回存，保持前后端一致
+      }catch(e){/* 离线或后端不可用，忽略 */}
+      clearTimeout(timer);
+      let realPoints = [];
+      try{
+        const resp = await fetch(API_BASE+'/api/points',{cache:'no-store'});
+        const data = await resp.json();
+        realPoints = data.points || [];
+      }catch(e){ realPoints = []; }
+      document.getElementById('counter').textContent =
+        realPoints.length>0 ? `已经有 ${realPoints.length} 位真实朋友填过啦，下面是你和大家的位置 ✨`
+            : `你是较早填写的人之一～真实数据积累中，亮色大点是你 🌟`;
+      renderScatter(realPoints, me);
+    }catch(e){}
+  })();
 }
 
 /* ============ 四象限散点图 ============ */
@@ -681,15 +702,6 @@ function buildPayloadFromRecord(rec){
     type:rec.type, typeLabel:REPORT[rec.type]?REPORT[rec.type].title:rec.type,
     answers:ans
   };
-}
-// 复制「数据提取码」（换设备时手动粘贴用）
-function copyUid(){
-  const code = document.getElementById('uid-code').textContent;
-  if(!code || code==='…'){ toast('提取码还没生成'); return; }
-  const ok=()=>toast('提取码已复制 💗');
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(code).then(ok).catch(()=>fallbackCopy(code,ok));
-  }else fallbackCopy(code,ok);
 }
 function buildPayload(r){
   const ans = questions.map((q,i)=>({no:i+1, word:q.word, category:q.cat, score:answers[i]}));
