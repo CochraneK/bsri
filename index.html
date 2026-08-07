@@ -124,7 +124,12 @@
   .lead b{color:var(--ink);}
   .data-acts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
   .btn.small{font-size:14px;padding:12px 14px;border-radius:14px;flex:1;min-width:130px;background:#fff;color:var(--pink);box-shadow:var(--shadow);}
-  .prompt-box{display:none;background:#faf6fb;border:1px dashed #e7d8e0;border-radius:14px;padding:14px;font-size:12.5px;line-height:1.85;color:#5a4a54;white-space:pre-wrap;word-break:break-word;margin-bottom:12px;}
+  .prompt-box{display:block;background:#fff;border:1px dashed #e7d8e0;border-radius:14px;padding:14px;font-size:12.5px;line-height:1.85;color:#5a4a54;white-space:pre-wrap;word-break:break-word;margin-bottom:14px;}
+  .prompt-tip{font-size:12.5px;color:var(--ink-soft);margin:0 0 8px;line-height:1.6;}
+  .data-note{font-size:12.5px;color:#6a5a64;line-height:1.85;background:#f3f8ff;border:1px solid #dce9ff;border-radius:14px;padding:12px 14px;margin:0 0 14px;}
+  .data-note b{color:var(--ink);}
+  .take-away{padding:0 22px;}
+  .bottom-acts{padding:0 22px 12px;}
   .uid-line{font-size:12.5px;color:var(--ink-soft);background:#f1f6ff;border:1px dashed #cfe0ff;border-radius:12px;padding:11px 13px;margin-top:14px;line-height:1.7;}
   .uid-line code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;color:#3f7fe0;padding:2px 8px;border-radius:7px;font-size:12px;word-break:break-all;}
   .uid-line a{color:var(--pink);font-weight:700;cursor:pointer;margin-left:6px;}
@@ -268,23 +273,23 @@
           </div>
         </div>
 
-        <div class="r-section">
+        <div class="r-section take-away">
           <h3>把数据带走，去和别的 AI 聊聊 💗</h3>
           <p class="lead">这份测验，不止想给你贴一个标签。它悄悄记下的是——你眼里的自己：哪些是天生就有的温柔，哪些是你一点点练出来的坚韧。<br>所以，把这份数据带走吧。你可以去和任何你信任的 AI 接着聊：让它顺着你的特质，谈谈亲密关系里的相处、工作里更适合扮演的角色，甚至帮你写一封更"像你"的自我介绍。<br><b>数据在你自己手里，怎么用它、和谁聊，都由你说了算。</b></p>
-          <div class="data-acts">
-            <button class="btn small" onclick="downloadData()">📥 下载我的数据</button>
-            <button class="btn small" onclick="copyPrompt()">📋 复制 AI 开场白</button>
-          </div>
-          <div class="uid-line">你的「数据提取码」：<code id="uid-code">…</code><a onclick="copyUid()">复制</a><br>换手机或清缓存后，凭此码仍可在后台取回你的数据 💗</div>
-          <p class="lead" style="margin-top:14px;background:#f3f8ff;border:1px solid #dce9ff;border-radius:14px;padding:13px 15px;color:#6a5a64;">
-            <b>📋 关于你的数据：</b>我们匿名保存了你的 60 题作答、得分、类型与提交时间——<b>不含任何能识别你的信息</b>。
-            保存是为了方便你随时下载自己的数据（凭上面的「提取码」，换手机或清缓存也不怕丢），并把你和大家的落点一起展示在群体分布图上 💗
-          </p>
+
+          <div class="data-note">📋 关于你的数据：为了方便把你和大家的落点一起展示在群体分布图上，匿名保存了你的作答记录——<b>不含任何能识别你的信息</b>。 💗</div>
+
+          <p class="prompt-tip">👇 下面这段开场白，直接复制粘贴给任意 AI，它就能顺着你的特质接着聊：</p>
           <div class="prompt-box" id="prompt-box"></div>
         </div>
 
         <div class="r-foot">
           测验依据贝姆性别角色量表（BSRI）编制 · 结果由你的自我描述生成，仅供参考与自我探索，不作临床诊断 💗
+        </div>
+
+        <div class="data-acts bottom-acts">
+          <button class="btn small" onclick="downloadData()">📥 下载数据</button>
+          <button class="btn small" onclick="copyPrompt()">📋 复制 AI 开场白</button>
         </div>
       </div>
 
